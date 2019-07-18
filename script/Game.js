@@ -86,7 +86,7 @@ document.addEventListener('keydown', function (e) {
 		path.push(makeRectangle(x, y, lastX, lastY, oldDirection));
 	}
 	if(turn2){
-		path.push(makeRectangle(x2, y2, lastX2, lastY2, oldDirection2));
+		path2.push(makeRectangle(x2, y2, lastX2, lastY2, oldDirection2));
 	}
 });
 
@@ -225,12 +225,13 @@ function update(){
 		ctx.fillStyle = "red";
 	}
 
+	ctx.fillStyle = "#00FF00";
+		
 	for(let i = 0; i<path2.length; i++){
-		if(i == highlight){
-			ctx.fillStyle = "blue";
-		}
+		ctx.fillStyle = "#00FF00";
+	
 		ctx.fillRect(path2[i].x, path2[i].y, path2[i].width, path2[i].height)
-		ctx.fillStyle = "red";
+		//ctx.fillStyle = "red";
 	}
 	
 	ctx.fillStyle = "Black";

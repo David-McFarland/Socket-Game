@@ -1,0 +1,19 @@
+{
+  "name": "tron",
+  "version": "1.0.0",
+  "description": "Tron like game",
+  "main": "app.js",
+  "scripts": {
+    "test": "node app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "\u0016https://github.com/David-McFarland/Socket-Game"
+  },
+  "author": "David McFarland",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.15.2",
+    "socket.io": "^2.2.0"
+  }
+}

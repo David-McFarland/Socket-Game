@@ -17,41 +17,60 @@ let state = {
 	height: 5000
 }
 
+let numOfPlayers = 2;
+let livingPlayers = 2;
+/*
+	Bugs: Resizing
 
-let ids = []
+	You need to fix the resizing bug. Offsets do not work
+	well when you change the screen size.
+
+	Add living and dead paths. This will allow me to draw players
+	that are alive ontop of dead players to fix redering issue. 
+	This should include the user's playing.
+
+	Clean up structure of code.
+
+	When goes too fast reders poorly.
+*/
+
 
 io.on('connection', function(socket){
 	//console.log(socket.id);
 
   
   
-
+	//console.log("Ahhhh")
   socket.on('windowSize', function(data){
-  	let created = false;
   	for(let i = 0; i<state.players.length; i++){
-  		if(state.players[i].name === socket.id){
-  			created = true;
+  		if(state.players[i].id === socket.id){
   			state.players[i].screenWidth = data.width;
   			state.players[i].screenHeight = data.height;
   			break;
   		}
   	}
+  });
 
-  	if(!created){
-  		//console.log("Id: " + socket.id);
-  		makePlayer(socket.id, 600, 450 - 100 * ids.length, "d", "a", "#808000", data.width, data.height);
-  		//console.log(state.players[0].name);
-  		ids.push(socket.id);
+  socket.on("name", function(name, screen){
+  	if(!start){
+  		makePlayer(name, socket.id, 600, 450 - 100 * state.players.length, "d", "a", "#808000", screen.width, screen.height);
+	  	io.emit("newPlayer", state.players.length + " out of " + numOfPlayers + " players.");
   	}
-  	//console.log(data);
   });
 
   socket.on("keyPressed", function(key){
   	//console.log(key);
 	let oldDirections = [];
+	//console.log(key);
+	if(key === "ArrowLeft"){
+		key = "a";
+	}
+	else if(key === "ArrowRight"){
+		key = "d";
+	}
 	for(let i = 0; i<state.players.length; i++){
 		oldDirections.push(state.players[i].direction);
-		if(state.players[i].name !== socket.id){
+		if(state.players[i].id !== socket.id){
 			//console.log(state.players.name)
 			//console.log(socket.id)
 			continue;
@@ -79,7 +98,25 @@ io.on('connection', function(socket){
 				state.players[i].lastX, state.players[i].lastY, oldDirections[i]));
 		}
 	}
+
+	
+
+
   });
+
+  socket.on('disconnect', function(){
+		//console.log("diconnect");
+		for(let i = 0; i<state.players.length; i++){
+			if(state.players[i].id === socket.id){
+				state.players.splice(i, 1);
+				io.emit("newPlayer", state.players.length + " out of " + numOfPlayers + " players.");
+				//io.to(`${socket.id}`).emit("newPlayer", state.players.length + " out of " + numOfPlayers + " players.");
+			}
+		}
+		
+	});
+
+
 
 });
 
@@ -94,16 +131,17 @@ setInterval(sendMessage, 1000);
 
 
 //makePlayer(socket.id, 600, 400 - 100 * ids.length, "d", "a", "#808000", 1536, 900);
-
+let stopUpdate;
 
 function sendMessage(){
 	//console.log(state.players.length)
 	//console.log(ids.length)
-	if(state.players.length === 4 && !start){
+	if(state.players.length === numOfPlayers && !start){
 		//io.emit('start');
-		setInterval(update, 16);
+		stopUpdate = setInterval(update, 16);
+
 		start = true;
-		console.log("Start");
+		//console.log("Start");
 		//console.log(state.players[0].offsetX)
 	}
 	//io.to(`${ids[num % 3]}`).emit('hey', 'I just met you');  	
@@ -112,6 +150,7 @@ function sendMessage(){
 http.listen(3000, function(){
   console.log('listening on *:3000');
 });
+
 
 
 
@@ -130,7 +169,7 @@ let border = [{x: 0, y: 0, width: state.width, height: 20}, {x: 0, y: 0, width: 
 
 
 
-function makePlayer(name, x, y, right, left, color, width, height){
+function makePlayer(name, id, x, y, right, left, color, width, height){
 	let offsetX = 0;
 	let offsetY = 0;
 
@@ -150,6 +189,7 @@ function makePlayer(name, x, y, right, left, color, width, height){
 	//console.log(offsetX);
 	state.players.push({
 		name: name,
+		id: id,
 		x: x,
 		y: y,
 		lastX: x,
@@ -184,7 +224,7 @@ function update(){
 			state.players[i].color = fadeToWhite(state.players[i].color, 3);
 			state.players[i].headColor = fadeToWhite(state.players[i].headColor, 3);
 		}
-		data.push([]);
+		data.push({otherPath: [], yourPath: [], names: []});
 	}
 	
 /*
@@ -229,7 +269,8 @@ function update(){
 		if(state.players[i].y > state.height - state.players[i].screenHeight/2 || state.players[i].offsetY > state.height - state.players[i].screenHeight){
 			state.players[i].offsetY = state.height - state.players[i].screenHeight;
 		}
-		
+		//data[i].x = state.players[i].x - state.players[i].offsetX;
+		//data[i].y = state.players[i].y - state.players[i].offsetY;
 	}
 
 	
@@ -256,6 +297,11 @@ function update(){
 				if(check  && state.players[j].alive == true){
 					state.players[k].speed = 0;
 					state.players[k].alive = false;
+					livingPlayers--;
+					if(livingPlayers === 1){
+						win();
+					}
+					lose(state.players[k].id)
 				}
 			}
 		}
@@ -269,6 +315,11 @@ function update(){
 			if(check  && state.players[j].alive == true){
 				state.players[j].speed = 0;
 				state.players[j].alive = false;
+				livingPlayers--;
+				if(livingPlayers === 1){
+					win();
+				}
+				lose(state.players[j].id)
 			}
 		}
 	}
@@ -277,8 +328,14 @@ function update(){
 		for(let j = 0; j<state.players.length; j++){
 			for(let i = 0; i<state.players[j].path.length; i++){
 				if(checkCollision(playersView[k], state.players[j].path[i])){
-					data[k].push({x: state.players[j].path[i].x - state.players[k].offsetX, y: state.players[j].path[i].y  - state.players[k].offsetY,
+					if(k !== j){
+						data[k].otherPath.push({x: state.players[j].path[i].x - state.players[k].offsetX, y: state.players[j].path[i].y  - state.players[k].offsetY,
 						width: state.players[j].path[i].width, height: state.players[j].path[i].height, color: state.players[j].color})
+					}
+					else{
+						data[k].yourPath.push({x: state.players[j].path[i].x - state.players[k].offsetX, y: state.players[j].path[i].y  - state.players[k].offsetY,
+						width: state.players[j].path[i].width, height: state.players[j].path[i].height, color: state.players[j].color})	
+					}
 					/*
 					ctx.fillStyle = state.players[j].color;
 					ctx.fillRect(state.players[j].path[i].x - offsetX, state.players[j].path[i].y  - offsetY, 
@@ -296,8 +353,13 @@ function update(){
 	for(let k = 0; k<state.players.length; k++){
 		for(let i = 0; i<state.players.length; i++){
 			if(checkCollision(playersView[k], {x: state.players[i].x, y: state.players[i].y, width: 20, height: 20})){
-				data[k].push({x: state.players[i].x - state.players[k].offsetX, y: state.players[i].y - state.players[k].offsetY, width: 20, height: 20, color: state.players[i].headColor})
-
+				if(k !== i){
+					data[k].otherPath.push({x: state.players[i].x - state.players[k].offsetX, y: state.players[i].y - state.players[k].offsetY, width: 20, height: 20, color: state.players[i].headColor})
+				}
+				else{
+					data[k].yourPath.push({x: state.players[i].x - state.players[k].offsetX, y: state.players[i].y - state.players[k].offsetY, width: 20, height: 20, color: state.players[i].headColor})
+				}
+				
 				/*
 				ctx.fillStyle = state.players[i].headColor;
 				ctx.fillRect(state.players[i].x - offsetX, state.players[i].y - offsetY, 20, 20);
@@ -308,9 +370,10 @@ function update(){
 			//ctx.fillStyle = state.players[i].color;
 			//ctx.fillText(state.players[i].name, state.players[i].x  - offsetX, state.players[i].y-20 - offsetY);
 			for( let j = 0; j<border.length; j++){
-				data[k].push({x: border[j].x - state.players[k].offsetX, y: border[j].y - state.players[k].offsetY, width: border[j].width, height: border[j].height, color: "#000000"});
+				data[k].otherPath.push({x: border[j].x - state.players[k].offsetX, y: border[j].y - state.players[k].offsetY, width: border[j].width, height: border[j].height, color: "#000000"});
 				//ctx.fillRect(border[i].x - offsetX, border[i].y - offsetY, border[i].width, border[i].height)
 			}
+			data[k].names.push({name: state.players[i].name, x: state.players[i].x - state.players[k].offsetX, y: state.players[i].y - state.players[k].offsetY, color: state.players[i].color});
 		}
 	}
 	
@@ -330,12 +393,57 @@ function update(){
 
 	for(let i = 0; i<state.players.length; i++){
 
-		io.to(`${state.players[i].name}`).emit("draw", data[i]);  
+		io.to(`${state.players[i].id}`).emit("draw", data[i]);
 
 	}
 	//requestAnimationFrame(update);
 }
 
+function win(){
+	for(let i = 0; i<state.players.length; i++){
+		if(state.players[i].alive){
+			io.to(state.players[i].id).emit("win");
+		}
+	}
+	clearInterval(stopUpdate);
+	setTimeout(restart, 1000);
+}
+
+function restart(){
+	for(let i = 0; i<state.players.length; i++){
+		state.players[i].path = [];
+
+		state.players[i].x = 100;
+		state.players[i].y = 100 + 100*i;
+		state.players[i].lastX = 100;
+		state.players[i].lastY = 100 + 100*i;
+
+		if(state.players[i].x > state.width - state.players[i].width / 2){
+			state.players[i].offsetX = state.width - state.players[i].width;
+		}
+		else{
+			state.players[i].offsetX = state.players[i].x - state.players[i].width / 2;
+		}
+
+		if(state.players[i].y > state.height - state.players[i].height / 2){
+			state.players[i].offsetY = state.height - state.players[i].height;
+		}
+		else{
+			state.players[i].offsetY = state.players[i].y - state.players[i].height / 2;
+		}
+		livingPlayers = numOfPlayers;
+		state.players[i].direction = 1
+		state.players[i].alive = true;
+		state.players[i].speed = 10;
+	}
+	stopUpdate = setInterval(update, 16);
+	io.emit("restart");
+}
+
+function lose(id){
+	//console.log("Winner");
+	io.to(id).emit("lose");
+}
 
 function fadeToWhite(color, speed = 1){
 	let string = "#"

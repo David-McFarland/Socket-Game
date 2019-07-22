@@ -1,154 +1,105 @@
+let socket = null;
 
-var socket = io();
-//socket.emit('chat message', "It works!");
-
-socket.on('hey', function(msg){
-      console.log(msg)
- });
-
-socket.on('start', function(){
-	//update();
-});
-
-socket.on('draw', function(rects){
-	draw(rects);
-});
-
-socket.on('windowSize', function(data){
-	console.log(data.width)
-	console.log(data.height)
-});
-// Get the canvas element form the page
 var canvas = document.getElementById("myCanvas");
- 
-/* Rresize the canvas to occupy the full page, 
-   by getting the widow width and height and setting it to canvas*/
+
  
 canvas.width  = window.innerWidth;
 canvas.height = window.innerHeight;
-socket.emit("windowSize", {width: canvas.width, height: canvas.height});
 document.body.style.overflow = 'hidden';
 
 ctx = canvas.getContext('2d');
 
-let path = [];
-let path2 = [];
-let speed = 2;
-let counter = 0;
-let turn = false;
-let turn2 = false;
-let x = canvas.width * (1/3);
-x = Math.round(x + x%5)
-let y = canvas.height * (3/4);
-y = Math.round(y + y%5)
 
+let start = false;
+let end = false;
+let name = "";
 
-let x2 = canvas.width * (2/3);
-x2 = Math.round(x2 + x%5)
-let y2 = canvas.height * (3/4);
-y2 = Math.round(y2 + y%5)
-let lastX = x;
-let lastY = y;
-let lastX2 = x2;
-let lastY2 = y2;
-let direction = 0; //0: Up, 1: Right, 2: Down, 3: Left
-let direction2 = 0; //0: Up, 1: Right, 2: Down, 3: Left
-
-
-let highlight = -1;
-
-let offsetX = 0;
-let offsetY = 0;
-
-
-
-
-
-
-
-
-//let newState = update(state)
-
-
-//makePlayer("Victoria", 300, 200, "l", "j", "#008080")
-
-//makePlayer("Max", 300, 400, "d", "a", "#800080")
-
-//makePlayer("Victoria", 400, 600, "l", "j", "#808000")
-
-
-//makePlayer("David", 600, 1600, "6", "4", "#808000")
-
-
-
-
-
-//state.players[0].speed = 5;
-
-//makePlayer("David", 900, 600, "ArrowRight", "ArrowLeft", "#808000")
-
-//makePlayer(1000, 600, "4", "6", "#808080")
+ctx.font = "72px Arial";
+ctx.fillText("Enter name then hit enter.", canvas.width * (1 / 3), canvas.height * (1 / 3));
+ctx.fillText("Name: ", canvas.width * (1 / 3), canvas.height * (2 / 3));
 
 document.addEventListener('keydown', function (e) {
-
-	socket.emit("keyPressed", e.key);
-	/*
-	let oldDirections = [];
-	for(let i = 0; i<state.players.length; i++){
-		oldDirections.push(state.players[i].direction);
-		if(state.players[i].turn){
-			continue;
-		}
-		if(e.key == state.players[i].right){
-			state.players[i].direction = (state.players[i].direction + 1) % 4;
-			state.players[i].turn = true;
-		}
-		else if(e.key == state.players[i].left){
-			state.players[i].direction = (state.players[i].direction + 3) % 4;
-			state.players[i].turn = true;
-		}
-
-		if(state.players[i].speed == 0){
-			state.players[i].turn = false;
-			state.players[i].direction = oldDirections[i];
-			
-		}
-
-		if(state.players[i].turn){
-			state.players[i].path.push(makeRectangle(state.players[i].x, state.players[i].y, 
-				state.players[i].lastX, state.players[i].lastY, oldDirections[i]));
-		}
+	if(start){
+		socket.emit("keyPressed", e.key);
 	}
-	*/
+	else{
+		if(e.key.length > 1){
+			//console.log(e.key);
+			if(e.key === "Backspace"){
+				name = name.substring(0,name.length-1);
+				ctx.clearRect(0, 0, canvas.width, canvas.height);
+				ctx.fillText("Enter name then hit enter.", canvas.width * (1 / 3), canvas.height * (1 / 3));
+				ctx.fillText("Name: " + name, canvas.width * (1 / 3), canvas.height * (2 / 3));
+			}
+			else if(e.key === "Enter"){
+				socket = io();
+				socket.emit("name", name, {width: canvas.width, height: canvas.height});
+				socket.on('draw', function(rects){
+					if(!end){
+						draw(rects);
+					}
+				});
+				socket.on('newPlayer', function(text){
+					ctx.clearRect(0, 0, canvas.width, canvas.height);
+					ctx.font = "72px Arial";
+					ctx.fillText(text, canvas.width * (1 / 3), canvas.height * (1 / 2));
+				});
+
+				socket.on("win", function(){
+					end = true;
+					//console.log("Win");
+					ctx.clearRect(0, 0, canvas.width, canvas.height);
+					ctx.font = "72px Arial";
+					ctx.fillText("Winner! :)", canvas.width / 2 - 100, canvas.height / 2);
+				});
+
+				socket.on("lose", function(){
+					end = true;
+					//console.log("Lose");
+					ctx.clearRect(0, 0, canvas.width, canvas.height);
+					ctx.font = "72px Arial";
+					ctx.fillText("Loser! :(", canvas.width / 2 - 100, canvas.height / 2);
+				});
+
+				socket.on("restart", function(){
+					end = false;
+				});
+
+				start = true;
+			}
+			return;
+		}
+		name += e.key;
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
+		ctx.fillText("Enter name then hit enter.", canvas.width * (1 / 3), canvas.height * (1 / 3));
+		ctx.fillText("Name: " + name, canvas.width * (1 / 3), canvas.height * (2 / 3));
+	}
 });
 
 window.addEventListener('resize', function (e) {
 	canvas.width  = this.innerWidth;
 	canvas.height = this.innerHeight;
-	socket.emit("windowSize", {width: canvas.width, height: canvas.height});
-	//border = [{x: 0, y: 0, width: canvas.width, height: 20}, {x: 0, y: 0, width: 20, height: canvas.height}, {x: canvas.width-20, y: 0, width: 20, height: canvas.height}, {x: 0, y: canvas.height - 20, width: canvas.width, height: 20}];
+	if(start){
+		socket.emit("windowSize", {width: canvas.width, height: canvas.height});
+	}
 });
 
-function draw(rects){
+function draw(data){
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
-	for(let i = 0; i<rects.length; i++){
-		ctx.fillStyle = rects[i].color;
-		ctx.fillRect(rects[i].x, rects[i].y, rects[i].width, rects[i].height)
+	for(let i = 0; i<data.otherPath.length; i++){
+		ctx.fillStyle = data.otherPath[i].color;
+		ctx.fillRect(data.otherPath[i].x, data.otherPath[i].y, data.otherPath[i].width, data.otherPath[i].height)
+	}
+
+	for(let i = 0; i<data.yourPath.length; i++){
+		ctx.fillStyle = data.yourPath[i].color;
+		ctx.fillRect(data.yourPath[i].x, data.yourPath[i].y, data.yourPath[i].width, data.yourPath[i].height)
+	}
+	ctx.font = "30px Arial";
+	
+	for(let i = 0; i<data.names.length; i++){
+		ctx.fillStyle = data.names[i].color;
+		ctx.fillText(data.names[i].name, data.names[i].x, data.names[i].y);
 	}
 }
 
-
-
-
-
-function checkIntersection(horizontal, vertical){
-
-}
-
-function addBorder(rect){
-
-}
-
-function checkCollision2(line1, line2){
-	return false;
-}

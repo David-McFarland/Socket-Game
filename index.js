@@ -17,8 +17,8 @@ let state = {
 	height: 5000
 }
 
-let numOfPlayers = 2;
-let livingPlayers = 2;
+let numOfPlayers = 3;
+let livingPlayers = 3;
 /*
 	Bugs: Resizing
 
@@ -414,23 +414,25 @@ function restart(){
 		state.players[i].path = [];
 
 		state.players[i].x = 100;
-		state.players[i].y = 100 + 100*i;
+		state.players[i].y = 100 + 300*i;
 		state.players[i].lastX = 100;
-		state.players[i].lastY = 100 + 100*i;
+		state.players[i].lastY = 100 + 300*i;
 
-		if(state.players[i].x > state.width - state.players[i].width / 2){
+		if(state.players[i].x > state.width - state.players[i].screenWidth / 2){
 			state.players[i].offsetX = state.width - state.players[i].width;
 		}
 		else{
-			state.players[i].offsetX = state.players[i].x - state.players[i].width / 2;
+			state.players[i].offsetX = state.players[i].x - state.players[i].screenWidth / 2;
 		}
 
-		if(state.players[i].y > state.height - state.players[i].height / 2){
+		if(state.players[i].y > state.height - state.players[i].screenHeight / 2){
 			state.players[i].offsetY = state.height - state.players[i].height;
 		}
 		else{
-			state.players[i].offsetY = state.players[i].y - state.players[i].height / 2;
+			state.players[i].offsetY = state.players[i].y - state.players[i].screenHeight / 2;
 		}
+		state.players[i].color = "#808000";
+		state.players[i].headColor = "#000000";
 		livingPlayers = numOfPlayers;
 		state.players[i].direction = 1
 		state.players[i].alive = true;
